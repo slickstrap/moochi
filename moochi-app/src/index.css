@@ -1,10 +1,8 @@
-@config "../tailwind.config.js"; /* 👈 This tells Tailwind where to find the config */
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* Optional: global dark styling */
 body {
-  @apply bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-white;
-  font-family: sans-serif;
+  @apply bg-gray-900 text-white;
 }
