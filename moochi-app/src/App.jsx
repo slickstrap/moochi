@@ -7,7 +7,8 @@ import Layout from './Layout';
 import { useEffect } from 'react';
 import { supabase } from './supabaseClient';
 import Configure from './Configure';
-import Analyze from './Analyze'; // ✅ <-- Import the real Analyze.jsx component
+import Analyze from './Analyze';
+import Dashboard from './Dashboard'; // ✅ Newly added Dashboard component
 
 // ✅ Auth check hook
 function useAuthRedirect(navigate) {
@@ -22,19 +23,6 @@ function useAuthRedirect(navigate) {
   }, [navigate]);
 }
 
-// ✅ Dashboard placeholder page (new default home route)
-function Dashboard() {
-  const navigate = useNavigate();
-  useAuthRedirect(navigate);
-
-  return (
-    <div className="text-white">
-      <h1 className="text-2xl font-bold">📊 Dashboard</h1>
-      <p className="text-gray-300 mt-2">Reports and insights will be displayed here.</p>
-    </div>
-  );
-}
-
 // ✅ Admin protected wrapper
 function AdminProtected() {
   const navigate = useNavigate();
@@ -42,7 +30,7 @@ function AdminProtected() {
   return <Admin />;
 }
 
-// ✅ Router
+// ✅ Router setup
 function App() {
   return (
     <Routes>
@@ -51,12 +39,10 @@ function App() {
 
       {/* All layout pages go inside this route */}
       <Route element={<Layout />}>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/analyze" element={<Analyze />} /> {/* ✅ Real analyzer */}
+        <Route path="/" element={<Dashboard />} /> {/* ✅ Live Dashboard */}
+        <Route path="/analyze" element={<Analyze />} />
         <Route path="/admin" element={<AdminProtected />} />
         <Route path="/configure" element={<Configure />} />
-
-        {/* Future pages here like: <Route path="/account" element={<AccountPage />} /> */}
       </Route>
     </Routes>
   );

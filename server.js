@@ -12,7 +12,7 @@ app.use(bodyParser.json());
 
 // ✅ Initialize Groq with your API key
 const groq = new Groq({
-  apiKey: 'MyAPI',
+  apiKey: 'myapi',
 });
 
 // ✅ POST /analyze — Accepts transcript and prompt, returns structured JSON

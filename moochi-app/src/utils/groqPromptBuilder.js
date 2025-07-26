@@ -20,31 +20,31 @@ export function generateGroqPrompt(configObj, transcript) {
             .join(', ') || '        "None"';
   
           return `      {
-          "label": "${opt.label.replace(/"/g, '\\"')}",
-          "sub_demands": [${subFormatted}]
-        }`;
+            "label": "${opt.label.replace(/"/g, '\\"')}",
+            "sub_demands": [${subFormatted}]
+          }`;
         }).join(',\n') || '      { "label": "None", "sub_demands": [] }';
   
         return `  {
-      "title": "${title}",${prompt}
-      "type": "options",
-      "options": [\n${optionsFormatted}\n    ]
-    }`;
+          "title": "${title}",${prompt}
+          "type": "options",
+          "options": [\n${optionsFormatted}\n    ]
+        }`;
       }
   
       if (q.type === 'sentence') {
         const limit = q.charLimit || 128;
         return `  {
-      "title": "${title}",${prompt}
-      "type": "sentence",
-      "char_limit": ${limit}
-    }`;
+          "title": "${title}",${prompt}
+          "type": "sentence",
+          "char_limit": ${limit}
+        }`;
       }
   
       return `  {
-      "title": "${title}",${prompt}
-      "type": "unknown"
-    }`;
+        "title": "${title}",${prompt}
+        "type": "unknown"
+      }`;
     }).join(',\n');
   
     return `
@@ -66,8 +66,7 @@ export function generateGroqPrompt(configObj, transcript) {
       {
         "title": "Question text...",
         "answer": "Selected option or written answer",
-        "sub_demand": "Sub-category (if applicable)",
-        "description": "128-character summary if question is sentence type"
+        "sub_demand": "Sub-category (if applicable)"
       }
     ]
   }

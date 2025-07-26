@@ -12,6 +12,7 @@ export default function Analyze() {
   const [selectedAnalysisTitle, setSelectedAnalysisTitle] = useState('');
   const [config, setConfig] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [duplicateWarning, setDuplicateWarning] = useState(false);
 
   useEffect(() => {
     const fetchUserAndTypes = async () => {
@@ -32,6 +33,22 @@ export default function Analyze() {
 
     fetchUserAndTypes();
   }, []);
+
+  useEffect(() => {
+    const checkDuplicate = async () => {
+      if (!contactId || !selectedAnalysisTitle) return;
+      const { data } = await supabase
+        .from('audits')
+        .select('id')
+        .eq('contact_id', contactId)
+        .eq('analysis_type', selectedAnalysisTitle)
+        .maybeSingle();
+
+      setDuplicateWarning(!!data);
+    };
+
+    checkDuplicate();
+  }, [contactId, selectedAnalysisTitle]);
 
   const handleAnalysisTypeChange = async (e) => {
     const title = e.target.value;
@@ -108,22 +125,16 @@ export default function Analyze() {
       return;
     }
 
+    if (duplicateWarning) {
+      alert("⚠️ This contact ID already exists for the selected analysis type.");
+      return;
+    }
+
     let parsed;
     try {
       parsed = JSON.parse(output);
     } catch (e) {
       alert("❗ Invalid output JSON format.");
-      return;
-    }
-
-    const { data: existing, error: existingErr } = await supabase
-      .from('audits')
-      .select('id')
-      .eq('contact_id', contactId)
-      .maybeSingle();
-
-    if (existing) {
-      alert("⚠️ This contact ID already exists in the database.");
       return;
     }
 
@@ -145,18 +156,13 @@ export default function Analyze() {
 
     const audit_id = insertAudit.id;
 
-    const answers = [];
-    for (const q of parsed.questions || []) {
-      if (!q.title) continue;
-      const base = {
-        audit_id,
-        question_title: q.title,
-        answer: q.answer || '',
-        description: q.description || '',
-        sub_demand: q.sub_demand || '',
-      };
-      answers.push(base);
-    }
+    const answers = (parsed.questions || []).map(q => ({
+      audit_id,
+      question_title: q.title,
+      answer: q.answer || '',
+      description: q.description || '',
+      sub_demand: q.sub_demand || '',
+    }));
 
     const { error: answersError } = await supabase.from('audit_answers').insert(answers);
 
@@ -165,6 +171,15 @@ export default function Analyze() {
       alert('❌ Failed to save audit answers.');
     } else {
       alert('✅ Audit saved successfully!');
+            // Reset form after successful save
+            setCallDate('');
+            setContactId('');
+            setTranscript('');
+            setOutput('');
+            setSelectedAnalysisTitle('');
+            setConfig(null);
+            setDuplicateWarning(false);
+      
     }
   };
 
@@ -174,21 +189,7 @@ export default function Analyze() {
         <h1 className="text-2xl font-bold text-center">🎧 Moochi Transcript Analyzer</h1>
 
         <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Call Date</label>
-            <input type="date" className="w-full bg-gray-700 border border-gray-600 text-white rounded-md px-4 py-2" value={callDate} onChange={e => setCallDate(e.target.value)} />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">Contact ID</label>
-            <input type="text" className="w-full bg-gray-700 border border-gray-600 text-white rounded-md px-4 py-2" value={contactId} onChange={e => setContactId(e.target.value)} />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">Transcript</label>
-            <textarea rows="6" className="w-full bg-gray-700 border border-gray-600 text-white rounded-md px-4 py-2" value={transcript} onChange={e => setTranscript(e.target.value)} />
-          </div>
-
+          {/* Analysis Type First */}
           <div>
             <label className="block text-sm font-medium mb-1">Analysis Type</label>
             <select className="w-full bg-gray-700 border border-gray-600 text-white rounded-md px-4 py-2" value={selectedAnalysisTitle} onChange={handleAnalysisTypeChange}>
@@ -197,6 +198,28 @@ export default function Analyze() {
                 <option key={id} value={title}>{title}</option>
               ))}
             </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Call Date</label>
+            <input type="date" className="w-full bg-gray-700 border border-gray-600 text-white rounded-md px-4 py-2" value={callDate} onChange={e => setCallDate(e.target.value)} />
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between">
+              <label className="block text-sm font-medium mb-1">Contact ID</label>
+              {duplicateWarning && (
+                <div className="flex items-center text-yellow-400 text-xs space-x-1">
+                  <span>⚠️ Duplicate ID</span>
+                </div>
+              )}
+            </div>
+            <input type="text" className={`w-full bg-gray-700 border ${duplicateWarning ? 'border-yellow-500' : 'border-gray-600'} text-white rounded-md px-4 py-2`} value={contactId} onChange={e => setContactId(e.target.value)} />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Transcript</label>
+            <textarea rows="6" className="w-full bg-gray-700 border border-gray-600 text-white rounded-md px-4 py-2" value={transcript} onChange={e => setTranscript(e.target.value)} />
           </div>
 
           <button onClick={handleAnalyze} disabled={loading} className="w-full bg-green-600 hover:bg-green-700 px-4 py-2 rounded text-white font-semibold">
@@ -231,10 +254,10 @@ export default function Analyze() {
                               <p className="ml-6 break-words">{q.sub_demand}</p>
                             </>
                           )}
-                          {q.description && q.description !== 'None' && (
+                          {q.demand_description && q.demand_description !== 'None' && (
                             <>
-                              <strong className="text-green-300 ml-2">Description:</strong>
-                              <p className="ml-6 whitespace-pre-wrap break-words">{q.description}</p>
+                              <strong className="text-green-300 ml-2">Demand Description:</strong>
+                              <p className="ml-6 whitespace-pre-wrap break-words">{q.demand_description}</p>
                             </>
                           )}
                         </div>

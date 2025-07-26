@@ -44,14 +44,14 @@ function Configure() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) return;
 
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('saved_configs')
       .select('*')
       .eq('user_id', session.user.id)
       .order('created_at', { ascending: false })
       .limit(1);
 
-    if (!error && data?.length) {
+    if (data?.length) {
       setSelectedAnalysisId(data[0].id);
       setQuestions(data[0].config);
       setOriginalQuestions(data[0].config);
@@ -63,13 +63,13 @@ function Configure() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) return;
 
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('saved_configs')
       .select('id, title')
       .eq('user_id', session.user.id)
       .order('created_at', { ascending: false });
 
-    if (!error) setHistory(data);
+    if (data) setHistory(data);
   };
 
   const handleSelectAnalysis = async (id) => {
@@ -79,13 +79,13 @@ function Configure() {
     }
 
     setSelectedAnalysisId(id);
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('saved_configs')
       .select('config, title')
       .eq('id', id)
       .single();
 
-    if (!error && data) {
+    if (data) {
       setQuestions(data.config);
       setOriginalQuestions(data.config);
       setAnalysisTitle(data.title);
@@ -164,9 +164,7 @@ function Configure() {
 
   const handleDeleteLocal = (index) => {
     setQuestions(prev => prev.filter((_, i) => i !== index));
-    if (editingIndex === index) {
-      resetQuestionForm();
-    }
+    if (editingIndex === index) resetQuestionForm();
   };
 
   const handleOptionChange = (index, value) => {
@@ -262,7 +260,7 @@ function Configure() {
                 </div>
               ))}
               <button
-                className="mt-2 bg-green-600 px-3 py-1 rounded hover:bg-green-700"
+                className="mt-2 bg-gray-600 px-3 py-1 rounded hover:bg-gray-500 text-sm"
                 onClick={() => setOptions([...options, { label: '', sub: [] }])}
               >
                 ➕ Add Main Option
@@ -289,13 +287,22 @@ function Configure() {
             onChange={(e) => setCustomPrompt(e.target.value)}
           />
 
-          <button className="bg-blue-600 w-full py-2 rounded hover:bg-blue-700" onClick={handleAddOrUpdateQuestion}>
-            {editingIndex !== null ? '✏️ Update Question' : '➕ Add to List'}
-          </button>
+          <div className="flex gap-2 flex-col sm:flex-row">
+            <button
+              className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded text-white font-semibold"
+              onClick={handleAddOrUpdateQuestion}
+            >
+              {editingIndex !== null ? '✏️ Update Question' : '➕ Add to List'}
+            </button>
 
-          <button className="bg-purple-600 w-full py-2 rounded hover:bg-purple-700" onClick={handleSaveConfiguration} disabled={saving}>
-            💾 Save Analysis Type
-          </button>
+            <button
+              className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded text-white font-semibold"
+              onClick={handleSaveConfiguration}
+              disabled={saving}
+            >
+              💾 Save Analysis Type
+            </button>
+          </div>
 
           {saveMessage && <p className="text-sm mt-2 text-green-400">{saveMessage}</p>}
         </div>
@@ -310,9 +317,11 @@ function Configure() {
                     <strong>{q.question_title}</strong> ({q.type})
                   </div>
                   <div className="space-x-2">
-                    <button onClick={() => handleEditQuestion(i)} className="bg-yellow-400 text-black px-2 py-1 rounded hover:bg-yellow-500">✏️ Edit</button>
-                    <button onClick={() => toggleExpand(i)} className="bg-gray-500 px-2 py-1 rounded">{expandedIndex === i ? 'Hide' : 'Show'}</button>
-                    <button onClick={() => handleDeleteLocal(i)} className="bg-red-600 px-2 py-1 rounded hover:bg-red-700">🗑</button>
+                    <button onClick={() => handleEditQuestion(i)} className="bg-yellow-500 text-black px-2 py-1 rounded hover:bg-yellow-600">✏️</button>
+                    <button onClick={() => toggleExpand(i)} className="bg-gray-600 text-white px-2 py-1 rounded hover:bg-gray-500">
+                      {expandedIndex === i ? 'Hide' : 'Show'}
+                    </button>
+                    <button onClick={() => handleDeleteLocal(i)} className="bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700">🗑</button>
                   </div>
                 </div>
                 {expandedIndex === i && (
