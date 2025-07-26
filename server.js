@@ -1,3 +1,4 @@
+// server.js
 import express from 'express';
 import cors from 'cors';
 import bodyParser from 'body-parser';
@@ -9,18 +10,34 @@ const port = 3000;
 app.use(cors());
 app.use(bodyParser.json());
 
-// ✅ Groq client setup with API key
+// ✅ Initialize Groq with your API key
 const groq = new Groq({
-  apiKey: 'API Key',
+  apiKey: 'MyAPI',
 });
 
-// ✅ POST endpoint
+// ✅ POST /analyze — Accepts transcript and prompt, returns structured JSON
 app.post('/analyze', async (req, res) => {
-  const { callDate, contactId, transcript, analysisType } = req.body;
+  const { callDate, contactId, transcript, prompt } = req.body;
 
-  // 🚨 Basic validation (prevents blank submissions from crashing the AI call)
-  if (!transcript || !analysisType) {
-    return res.status(400).json({ output: 'Missing transcript or analysis type.' });
+  console.log('📥 Incoming request body:', {
+    callDate,
+    contactId,
+    transcript,
+    prompt: prompt?.slice(0, 60) + '...' // log partial prompt only
+  });
+
+  // ✅ Validate required fields
+  const isValidPrompt = typeof prompt === 'string' && prompt.trim().length > 0;
+  const isValidTranscript = typeof transcript === 'string' && transcript.trim().length > 0;
+
+  if (!isValidTranscript || !isValidPrompt) {
+    console.warn('⚠️ Validation failed:', {
+      hasTranscript: isValidTranscript,
+      hasPrompt: isValidPrompt,
+      promptType: typeof prompt,
+    });
+
+    return res.status(400).json({ output: 'Missing or invalid transcript or prompt.' });
   }
 
   try {
@@ -29,30 +46,45 @@ app.post('/analyze', async (req, res) => {
       messages: [
         {
           role: 'system',
-          content: 'You are a helpful analyst who analyzes customer service call transcripts based on a selected analysis type.',
+          content: `
+You are a structured data extraction bot that audits call transcripts using a dynamic configuration.
+Your job is to:
+
+- Extract structured information based on a given prompt
+- Match transcript content to the schema provided (e.g., demands, sub-demands, reasons, etc.)
+- Output strictly valid JSON as per the user's configuration
+
+⚠️ Rules:
+- Do NOT include any explanations, summaries, or markdown
+- Do NOT add commentary
+- Only return valid JSON
+
+Output only JSON. Do not wrap in code blocks.
+          `.trim(),
         },
         {
           role: 'user',
-          content: `Call Date: ${callDate}
-Contact ID: ${contactId}
-Transcript: ${transcript}
-Analysis Type: ${analysisType}
-
-Please analyze accordingly.`,
+          content: prompt,
         },
       ],
     });
 
-    const output = completion.choices[0]?.message?.content ?? 'No response from AI.';
+    const output = completion.choices?.[0]?.message?.content?.trim();
+
+    if (!output) {
+      console.error('⚠️ No valid content returned from Groq.');
+      return res.status(500).json({ output: 'No valid response from Groq model.' });
+    }
+
     res.json({ output });
 
   } catch (error) {
-    console.error('❌ Groq API error in /analyze route:\n', error?.response?.data || error.message || error);
+    console.error('❌ Groq API error:\n', error?.response?.data || error.message || error);
     res.status(500).json({ output: 'Something went wrong during AI processing.' });
   }
 });
 
-// ✅ Server startup
+// ✅ Start the server
 app.listen(port, () => {
   console.log(`🚀 Server running on http://localhost:${port}`);
 });
