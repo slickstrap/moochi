@@ -3,3 +3,13 @@
 .vscode/
 .DS_Store
 .DS_Store
+.env
+.env.local
+.env.production
+.DS_Store
+node_modules/
+.vercel/
+backup/
+playground/
+docs/
+*.log
